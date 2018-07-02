@@ -12,3 +12,8 @@ _.wld = False
 _.scale_list = [1, 2, 4]
 
 _.weight_decay = 5e-4
+
+
+# for prediction
+_.overlap = 10
+_.inf_scales = [1, 2, 4]
