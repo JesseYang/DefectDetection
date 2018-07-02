@@ -67,7 +67,6 @@ class Data(RNGDataFlow):
                 img = cv2.pyrDown(img)
             if scale >= 4:
                 img = cv2.pyrDown(img)
-            img = np.expand_dims(img, axis=-1)
 
             # random flip
             if self.flip_ver == True and np.random.rand() > 0.5:
@@ -75,6 +74,8 @@ class Data(RNGDataFlow):
 
             if self.flip_horiz == True and np.random.rand() > 0.5:
                 img = cv2.flip(img, 0)
+
+            img = np.expand_dims(img, axis=-1)
 
             # random crop
             h, w, _ = img.shape
