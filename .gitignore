@@ -1,0 +1,8 @@
+train_log
+*.swp
+*.jpg
+*.txt
+*.png
+*.ipynb_checkpoints
+*__pycache__
+data*
