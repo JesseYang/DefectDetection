@@ -1,4 +1,5 @@
 train_log
+*.pkl
 *.swp
 *.jpg
 *.txt

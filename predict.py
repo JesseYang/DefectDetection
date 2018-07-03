@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import pickle
 import os
 import uuid
 import shutil
@@ -85,7 +86,7 @@ def predict_image(input_path, output_path, predict_func):
                 predictions = predict_func(sub_img)
                 sub_img_input = predictions[0]
                 sub_img_pred = predictions[1]
-                sub_img_diff = (sub_img_input[0,:,:,0] - sub_img_pred[0,:,:,0]) ** 2
+                sub_img_diff = np.abs(sub_img_input[0,:,:,0] - sub_img_pred[0,:,:,0])
 
                 diff[start_h+cfg.overlap:end_h-cfg.overlap,start_w+cfg.overlap:end_w-cfg.overlap] = \
                     sub_img_diff[cfg.overlap:-cfg.overlap,cfg.overlap:-cfg.overlap]
@@ -103,23 +104,32 @@ def predict_image(input_path, output_path, predict_func):
 
         misc.imsave('diff_%d.jpg' % scale, diff)
 
+
+    f = open('th_info.pkl', 'rb')
+    th_info = pickle.load(f)
+
+    output_list = []
+    for scale_idx, scale in enumerate(cfg.inf_scales):
+        info = th_info[scale]
+        diff = diff_list[scale_idx]
+        th = info['mean'] + 3 * info['std']
+        layer_output = (diff > th).astype(np.int)
+        output_list.append(layer_output)
+        
+    output_1 = output_list[0] & output_list[1]
+    output_2 = output_list[1] & output_list[2]
+    output = output_1 | output_2
+
+    misc.imsave('output.jpg', output)
+
+    '''
     diff = np.sum(diff_list, axis=0)
     misc.imsave('diff.jpg', diff)
 
     diff_blur = cv2.blur(diff, (5, 5))
     misc.imsave('diff_blur.jpg', diff_blur)
-
     '''
-    diff_color = (diff_blur * 255).astype(np.uint8)
-    diff_color = cv2.applyColorMap(diff_color, cv2.COLORMAP_HOT)
-    cv2.imwrite('diff_color.jpg', diff_color)
 
-    ori_img = cv2.imread(input_path)
-
-    diff_mix = cv2.addWeighted(ori_img, 0.7, diff_color, 0.3, 0)
-    cv2.imwrite('diff_mix.jpg', diff_mix)
-    '''
-    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', help='path of the model waiting for validation.')
