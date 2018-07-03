@@ -17,12 +17,11 @@ from tensorpack import *
 
 try:
     from .cfgs.config import cfg
-except Exception:
-    from cfgs.config import cfg
-
-try:
+    from .reader import wld
     from .train import Model
 except Exception:
+    from cfgs.config import cfg
+    from reader import wld
     from train import Model
 
 def get_pred_func(args):
@@ -37,6 +36,9 @@ def get_pred_func(args):
 
 def predict_image(input_path, output_path, predict_func):
     img = cv2.imread(input_path, cv2.IMREAD_GRAYSCALE)
+
+    if cfg.wld:
+        img = wld(img)
 
     diff_list = []
     for scale in cfg.inf_scales:
@@ -76,6 +78,8 @@ def predict_image(input_path, output_path, predict_func):
                     end_w = w
 
                 sub_img = img_scale[start_h:end_h, start_w:end_w]
+
+
                 sub_img = np.expand_dims(np.expand_dims(sub_img, axis=-1), axis=0)
         
                 predictions = predict_func(sub_img)

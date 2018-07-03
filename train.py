@@ -83,13 +83,13 @@ def get_data(train_or_test, batch_size):
     is_train = train_or_test == 'train'
 
     filename_list = cfg.train_list if is_train else cfg.test_list
-    ds = Data(filename_list, shuffle=True)
+    ds = Data(filename_list, rotate=False, flip_ver=is_train, flip_horiz=is_train, shuffle=is_train)
 
     sample_num = ds.size()
 
     augmentors = [
         # random rotate and flip should be applied to both input and label, thus cannot be added here
-        # imgaug.SaltPepperNoise(white_prob=0.01, black_prob=0.01),
+        imgaug.SaltPepperNoise(white_prob=0.01, black_prob=0.01),
         imgaug.ToUint8()
     ]
     ds = AugmentImageComponent(ds, augmentors)
@@ -107,8 +107,8 @@ def get_config(args, model):
         dataflow = ds_train,
         callbacks = [
             ModelSaver(),
-            # PeriodicTrigger(InferenceRunner(ds_val, [ScalarStats('cost')]),
-            #                 every_k_epochs=3),
+            PeriodicTrigger(InferenceRunner(ds_val, [ScalarStats('cost')]),
+                            every_k_epochs=5),
             HumanHyperParamSetter('learning_rate'),
         ],
         model = model,

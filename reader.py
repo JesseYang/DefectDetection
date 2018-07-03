@@ -32,7 +32,7 @@ def wld(img):
     return ret
 
 class Data(RNGDataFlow):
-    def __init__(self, filename_list, flip_ver=True, flip_horiz=True, shuffle=True):
+    def __init__(self, filename_list, rotate=True, flip_ver=True, flip_horiz=True, shuffle=True):
         super(Data, self).__init__()
 
         content = []
@@ -44,6 +44,7 @@ class Data(RNGDataFlow):
 
         self.flip_ver = flip_ver
         self.flip_horiz = flip_horiz
+        self.rotate = rotate
         self.shuffle = shuffle
 
     def size(self):
@@ -67,6 +68,13 @@ class Data(RNGDataFlow):
                 img = cv2.pyrDown(img)
             if scale >= 4:
                 img = cv2.pyrDown(img)
+
+            # random rotate
+            angle = random.choice([0, 90, 180, 270])
+            if self.rotate and angle != 0:
+                rows, cols = img.shape
+                M = cv2.getRotationMatrix2D((cols / 2,rows / 2), angle, 1)
+                img = cv2.warpAffine(img, M, (cols, rows))
 
             # random flip
             if self.flip_ver == True and np.random.rand() > 0.5:
