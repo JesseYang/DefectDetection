@@ -39,20 +39,20 @@ class Model(ModelDesc):
             img_pred = (LinearWrap(img_input)
                        .Conv2D('en_conv1', 64)
                        # .MaxPooling('en_pool1', 2, padding="SAME")
-                       .Conv2D('en_conv2', 128)
+                       .Conv2D('en_conv2', 128, dilation_rate=2)
                        # .MaxPooling('en_pool2', 2, padding="SAME")
-                       .Conv2D('en_conv3', 256)
+                       .Conv2D('en_conv3', 256, dilation_rate=4)
                        # .MaxPooling('en_pool3', 2, padding="SAME")
-                       .Conv2D('en_conv4', 512)
-                       .Conv2D('en_conv5', 512)
-                       .Conv2D('en_conv6', 512)
-                       .Conv2D('de_conv6', 512)
-                       .Conv2D('de_conv5', 512)
-                       .Conv2D('de_conv4', 256)
+#                        .Conv2D('en_conv4', 512)
+#                        .Conv2D('en_conv5', 512)
+#                        .Conv2D('en_conv6', 512)
+#                        .Conv2D('de_conv6', 512)
+#                        .Conv2D('de_conv5', 512)
+#                        .Conv2D('de_conv4', 256)
                        # .tf.image.resize_images((cfg.img_size // 4, cfg.img_size // 4))
-                       .Conv2D('de_conv3', 128)
+                       .Conv2D('de_conv3', 128, dilation_rate=8)
                        # .tf.image.resize_images((cfg.img_size // 2, cfg.img_size // 2))
-                       .Conv2D('de_conv2', 64)
+                       .Conv2D('de_conv2', 64, dilation_rate=16)
                        # .tf.image.resize_images((cfg.img_size, cfg.img_size))
                        .Conv2D('de_conv1', 1)())
 
@@ -60,10 +60,7 @@ class Model(ModelDesc):
 
         diff = img_pred - img_output
 
-        if cfg.loss == 'l2_loss':
-            loss = tf.nn.l2_loss(diff) / (cfg.img_size ** 2)
-        else:
-            loss = tf.reduce_sum(tf.abs(diff)) / (cfg.img_size ** 2)
+        loss = tf.nn.l2_loss(diff) / (cfg.img_size ** 2)
         loss = tf.identity(loss, name='loss')
 
         if cfg.weight_decay > 0:

@@ -42,6 +42,7 @@ def predict_image(input_path, output_path, predict_func):
         img = wld(img)
 
     diff_list = []
+    recover_list = []
     for scale in cfg.inf_scales:
         img_scale = np.copy(img)
         if scale >= 2:
@@ -51,6 +52,7 @@ def predict_image(input_path, output_path, predict_func):
 
         h, w = img_scale.shape[:2]
         diff = np.zeros((h, w))
+        recover = np.zeros((h, w))
 
         cur_h = 0
         while cur_h < h - cfg.overlap:
@@ -84,10 +86,12 @@ def predict_image(input_path, output_path, predict_func):
                 sub_img = np.expand_dims(np.expand_dims(sub_img, axis=-1), axis=0)
         
                 predictions = predict_func(sub_img)
-                sub_img_input = predictions[0]
-                sub_img_pred = predictions[1]
-                sub_img_diff = np.abs(sub_img_input[0,:,:,0] - sub_img_pred[0,:,:,0])
+                sub_img_input = predictions[0][0,:,:,0]
+                sub_img_pred = predictions[1][0,:,:,0]
+                sub_img_diff = np.abs(sub_img_input - sub_img_pred)
 
+                recover[start_h+cfg.overlap:end_h-cfg.overlap,start_w+cfg.overlap:end_w-cfg.overlap] = \
+                    sub_img_pred[cfg.overlap:-cfg.overlap,cfg.overlap:-cfg.overlap]
                 diff[start_h+cfg.overlap:end_h-cfg.overlap,start_w+cfg.overlap:end_w-cfg.overlap] = \
                     sub_img_diff[cfg.overlap:-cfg.overlap,cfg.overlap:-cfg.overlap]
 
@@ -97,12 +101,16 @@ def predict_image(input_path, output_path, predict_func):
 
         if scale >= 2:
             diff = cv2.pyrUp(diff)
+            recover = cv2.pyrUp(recover)
         if scale >= 4:
             diff = cv2.pyrUp(diff)
+            recover = cv2.pyrUp(recover)
 
         diff_list.append(diff)
+        recover_list.append(recover)
 
         misc.imsave('diff_%d.jpg' % scale, diff)
+        misc.imsave('recover_%d.jpg' % scale, recover)
 
 
     f = open('th_info.pkl', 'rb')
@@ -112,7 +120,7 @@ def predict_image(input_path, output_path, predict_func):
     for scale_idx, scale in enumerate(cfg.inf_scales):
         info = th_info[scale]
         diff = diff_list[scale_idx]
-        th = info['mean'] + 3 * info['std']
+        th = info['mean'] + 2 * info['std']
         layer_output = (diff > th).astype(np.int)
         output_list.append(layer_output)
         
@@ -120,7 +128,7 @@ def predict_image(input_path, output_path, predict_func):
     output_2 = output_list[1] & output_list[2]
     output = output_1 | output_2
 
-    misc.imsave('output.jpg', output)
+    misc.imsave(output_path, output)
 
     '''
     diff = np.sum(diff_list, axis=0)

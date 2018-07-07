@@ -32,7 +32,7 @@ def wld(img):
     return ret
 
 class Data(RNGDataFlow):
-    def __init__(self, filename_list, rotate=True, flip_ver=True, flip_horiz=True, shuffle=True):
+    def __init__(self, filename_list, rotate=True, flip_ver=True, flip_horiz=True, shuffle=True, line_noise=False):
         super(Data, self).__init__()
 
         content = []
@@ -46,6 +46,7 @@ class Data(RNGDataFlow):
         self.flip_horiz = flip_horiz
         self.rotate = rotate
         self.shuffle = shuffle
+        self.line_noise = line_noise
 
     def size(self):
         return len(self.imglist)
@@ -57,16 +58,27 @@ class Data(RNGDataFlow):
         for img_path in self.imglist:
 
             img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+#             label = np.copy(img)
+#             if self.line_noise:
+#                 xmin = np.random.randint(0, img.shape[1] - 110)
+#                 ymin = np.random.randint(0, img.shape[0] - 110)
+#                 xlength = np.random.randint(90, 110)
+#                 ylength = np.random.randint(0, xlength)
+#                 cv2.line(img,(xmin,ymin),(xmin+xlength,ymin+ylength), 100, 3)
+
             # wld
             if cfg.wld == True:
                 img = wld(img)
 
             # random scale
+            line_noise_length = np.random.randint(90, 110)
             scale = random.choice(cfg.scale_list)
             if scale >= 2:
                 img = cv2.pyrDown(img)
+                line_noise_length = line_noise_length // 2
             if scale >= 4:
                 img = cv2.pyrDown(img)
+                line_noise_length = line_noise_length // 2
 
             # random rotate
             angle = random.choice([0, 90, 180, 270])
@@ -83,6 +95,8 @@ class Data(RNGDataFlow):
                 img = cv2.flip(img, 0)
 
             img = np.expand_dims(img, axis=-1)
+#             label = np.expand_dims(label, axis=-1)
+
 
             # random crop
             h, w, _ = img.shape
@@ -94,16 +108,27 @@ class Data(RNGDataFlow):
 
             img = img[h0:h0 + cfg.img_size, w0:w0 + cfg.img_size]
 
-            yield [img, np.copy(img)]
+            label = np.copy(img)
+            if self.line_noise:
+                xmin = np.random.randint(0, img.shape[1])
+                ymin = np.random.randint(0, img.shape[0])
+#                 import pdb
+#                 pdb.set_trace()
+                ylength = np.random.randint(0, line_noise_length)
+                cv2.line(img,(xmin,ymin),(xmin+line_noise_length,ymin+ylength), 100, 4)
+
+            yield [img, label]
 
     def reset_state(self):
         super(Data, self).reset_state()
 
 
 if __name__ == '__main__':
-    ds = Data(['train_good_10.txt'], shuffle=False)
+    ds = Data(['train_good_10.txt'], shuffle=False, line_noise=True)
 
     ds.reset_state()
     
     g = ds.get_data()
-    sample = next(g)
+    for i in range(100):
+        img, label = next(g)
+        cv2.imwrite('line/%d.png'%i, img)

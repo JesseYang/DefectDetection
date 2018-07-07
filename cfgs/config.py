@@ -1,1 +1,1 @@
-from .config_data2 import cfg
+from .config_data7 import cfg
